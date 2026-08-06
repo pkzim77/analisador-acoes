@@ -1,0 +1,235 @@
+:root {
+  --viz-good: #0ca30c;
+  --viz-good-bg: #e5f6e5;
+  --viz-critical: #d03b3b;
+  --viz-critical-bg: #fbe9e9;
+  --viz-warning: #92400e;
+  --viz-warning-bg: #fdf1dc;
+  --viz-seq-fill: #2a78d6;
+  --viz-seq-track: #cde2fb;
+  --viz-muted: #898781;
+  --viz-secondary: #52514e;
+  --viz-gridline: #e1e0d9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f5f6f8;
+  color: #1a1a1a;
+}
+
+.app {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+h1 {
+  margin-bottom: 1.5rem;
+}
+
+.add-stock-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.add-stock-form input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.add-stock-form button,
+.actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.add-stock-form button:disabled,
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.table-scroll {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.positive {
+  color: var(--viz-good);
+}
+
+.negative {
+  color: var(--viz-critical);
+}
+
+.empty-state {
+  color: #666;
+}
+
+.error-message {
+  color: var(--viz-critical);
+  font-size: 0.85rem;
+}
+
+/* Chip: variação com seta, usado na coluna Variação % */
+.change-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.change-chip.positive {
+  background: var(--viz-good-bg);
+  color: var(--viz-good);
+}
+
+.change-chip.negative {
+  background: var(--viz-critical-bg);
+  color: var(--viz-critical);
+}
+
+.change-chip .arrow {
+  font-size: 0.75rem;
+}
+
+/* Meter: barra inline para P/L, Dividend Yield e Margem de Segurança */
+.meter-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-top: 0.3rem;
+}
+
+.meter-value {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.meter-track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--viz-seq-track);
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--viz-seq-fill);
+}
+
+.meter-track.diverging {
+  background: var(--viz-gridline);
+}
+
+.meter-track.diverging::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--viz-muted);
+}
+
+.meter-fill.positive {
+  background: var(--viz-good);
+}
+
+.meter-fill.negative {
+  background: var(--viz-critical);
+}
+
+/* Sparkline: mini gráfico de tendência de preço */
+.sparkline-cell {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.sparkline-placeholder {
+  color: var(--viz-muted);
+  font-size: 0.8rem;
+}
+
+/* Badge de sinal (Boa Compra) e chip do RSI */
+.signal-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--viz-good-bg);
+  color: var(--viz-good);
+  font-weight: 600;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.rsi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.rsi-badge.warning {
+  background: var(--viz-warning-bg);
+  color: var(--viz-warning);
+}
+
+.rsi-badge.good {
+  background: var(--viz-good-bg);
+  color: var(--viz-good);
+}
+
+/* Barra de ferramentas acima da tabela */
+.table-toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.quick-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--viz-secondary);
+  cursor: pointer;
+}
+
+.quick-filter input {
+  cursor: pointer;
+}
