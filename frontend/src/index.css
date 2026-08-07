@@ -86,6 +86,11 @@ h1 {
   color: var(--viz-critical);
 }
 
+.warning-text {
+  color: var(--viz-warning);
+  font-weight: 600;
+}
+
 .empty-state {
   color: #666;
 }
@@ -232,4 +237,56 @@ h1 {
 
 .quick-filter input {
   cursor: pointer;
+}
+
+/* Seções de tabelas detalhadas (Fórmula Mágica, DuPont, ...) abaixo da tabela principal */
+.detail-section {
+  margin-top: 2.5rem;
+}
+
+.detail-section h2 {
+  margin-bottom: 0.5rem;
+}
+
+.detail-section-intro {
+  max-width: 70ch;
+  color: var(--viz-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.detail-table th,
+.detail-table td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--viz-gridline);
+  white-space: nowrap;
+}
+
+.detail-table th {
+  background: #f0f1f3;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.detail-table tbody tr:first-child {
+  background: var(--viz-good-bg);
+}
+
+.detail-table-emphasis {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-note {
+  margin-top: 0.75rem;
+  color: var(--viz-muted);
+  font-size: 0.85rem;
 }

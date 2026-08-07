@@ -3,6 +3,7 @@ import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { computeValuation } from "../valuation.js";
 import { calcRSI } from "../technicals.js";
+import { rankMagicFormula } from "../magicFormula.js";
 import { fetchHistory } from "../api/stocksApi.js";
 import {
   formatPrice,
@@ -23,7 +24,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 const numOrNull = (v) => (v == null ? null : Number(v));
 
-function buildRow(stock, history) {
+function buildRow(stock, history, magicFormula) {
   const normalized = {
     ...stock,
     regularMarketPrice: numOrNull(stock.regularMarketPrice),
@@ -37,12 +38,15 @@ function buildRow(stock, history) {
     earningsPerShare: numOrNull(stock.earningsPerShare),
     bookValue: numOrNull(stock.bookValue),
     earningsGrowth: numOrNull(stock.earningsGrowth),
+    tagAlong: numOrNull(stock.tagAlong),
   };
   return {
     ...normalized,
     ...computeValuation(normalized),
     history,
     rsi: history ? calcRSI(history) : null,
+    magicFormulaPosition: magicFormula?.position ?? null,
+    magicFormulaTotal: magicFormula?.total ?? null,
   };
 }
 
@@ -72,13 +76,30 @@ export default function StocksTable({ stocks, onRemoved, onRefreshed }) {
   }, [stocks]);
 
   const rowData = useMemo(() => {
-    const rows = stocks.map((stock) => buildRow(stock, historyByTicker[stock.ticker]));
+    const { ranked, total } = rankMagicFormula(stocks);
+    const magicFormulaByTicker = new Map(ranked.map((r) => [r.ticker, { position: r.position, total }]));
+    const rows = stocks.map((stock) =>
+      buildRow(stock, historyByTicker[stock.ticker], magicFormulaByTicker.get(stock.ticker))
+    );
     return onlyGoodBuys ? rows.filter((r) => r.grahamMargin > 0) : rows;
   }, [stocks, historyByTicker, onlyGoodBuys]);
 
   const columnDefs = useMemo(
     () => [
       { field: "ticker", headerName: "Ticker", pinned: "left", width: 100 },
+      { field: "sector", headerName: "Setor", valueFormatter: (p) => p.value || "—", width: 150 },
+      {
+        field: "tagAlong",
+        headerName: "Tag Along",
+        headerTooltip:
+          "% do preço pago ao controlador que os minoritários recebem numa venda de controle. 100% = proteção total.",
+        cellRenderer: (p) => {
+          if (p.value == null) return "—";
+          const cls = p.value >= 100 ? "positive" : p.value >= 80 ? "warning-text" : "negative";
+          return <span className={cls}>{Number(p.value).toFixed(0)}%</span>;
+        },
+        width: 110,
+      },
       {
         headerName: "Sinal",
         valueGetter: (p) => (p.data.grahamMargin > 0 ? "boa-compra" : ""),
@@ -88,9 +109,16 @@ export default function StocksTable({ stocks, onRemoved, onRefreshed }) {
         width: 110,
       },
       {
-        headerName: "Nome",
-        valueGetter: (p) => p.data.shortName || p.data.longName || "—",
-        width: 84,
+        field: "magicFormulaPosition",
+        headerName: "Magic Formula",
+        headerTooltip:
+          "Posição no ranking da Fórmula Mágica de Greenblatt entre as ações rastreadas (Earnings Yield + ROIC). Veja a tabela detalhada abaixo.",
+        cellRenderer: (p) => {
+          if (p.value == null) return "—";
+          const cls = p.value === 1 ? "signal-badge" : "";
+          return <span className={cls}>{p.value}º de {p.data.magicFormulaTotal}</span>;
+        },
+        width: 130,
       },
       { field: "regularMarketPrice", headerName: "Preço", valueFormatter: (p) => formatPrice(p.value, p.data.currency), width: 110 },
       {

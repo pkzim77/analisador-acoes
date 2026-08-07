@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { listStocks } from "./api/stocksApi.js";
 import AddStockForm from "./components/AddStockForm.jsx";
 import StocksTable from "./components/StocksTable.jsx";
+import MagicFormulaTable from "./components/MagicFormulaTable.jsx";
+import DuPontTable from "./components/DuPontTable.jsx";
 
 export default function App() {
   const [stocks, setStocks] = useState([]);
@@ -35,7 +37,11 @@ export default function App() {
       {loading && <p>Carregando...</p>}
       {error && <p className="error-message">Não foi possível carregar as ações: {error}</p>}
       {!loading && !error && (
-        <StocksTable stocks={stocks} onRemoved={handleRemoved} onRefreshed={handleRefreshed} />
+        <>
+          <StocksTable stocks={stocks} onRemoved={handleRemoved} onRefreshed={handleRefreshed} />
+          <MagicFormulaTable stocks={stocks} />
+          <DuPontTable stocks={stocks} />
+        </>
       )}
     </main>
   );

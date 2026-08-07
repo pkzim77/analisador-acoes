@@ -1,20 +1,31 @@
 import { pool } from "../db.js";
 import { fetchQuote, fetchHistory } from "../services/brapiService.js";
 import { fetchFundamentals } from "../services/fundamentusService.js";
+import { fetchTagAlong } from "../services/statusInvestService.js";
 
 const TICKER_PATTERN = /^[A-Za-z]{4}\d{1,2}$/;
 
-// Preço/variação vêm da brapi.dev; VPA, Dividend Yield e crescimento vêm do fundamentus.com.br
-// (o plano gratuito da brapi.dev não libera esses indicadores de forma confiável).
+// Preço/variação/setor vêm da brapi.dev; VPA, Dividend Yield e crescimento vêm do
+// fundamentus.com.br; Tag Along vem do statusinvest.com.br — nenhuma das outras duas fontes
+// expõe esse dado.
 async function fetchStockData(ticker) {
-  const quote = await fetchQuote(ticker);
-  const fundamentals = await fetchFundamentals(ticker);
+  const [quote, fundamentals, tagAlong] = await Promise.all([
+    fetchQuote(ticker),
+    fetchFundamentals(ticker),
+    fetchTagAlong(ticker),
+  ]);
   return {
     ...quote,
     earningsPerShare: quote.earningsPerShare ?? fundamentals.earningsPerShare,
     bookValue: fundamentals.bookValue,
     dividendYield: fundamentals.dividendYield,
     earningsGrowth: fundamentals.earningsGrowth,
+    evEbit: fundamentals.evEbit,
+    roic: fundamentals.roic,
+    netMargin: fundamentals.netMargin,
+    assetTurnover: fundamentals.assetTurnover,
+    roe: fundamentals.roe,
+    tagAlong,
   };
 }
 
@@ -38,6 +49,13 @@ function rowToStock(row) {
     earningsPerShare: row.earnings_per_share,
     bookValue: row.book_value,
     earningsGrowth: row.earnings_growth,
+    sector: row.sector,
+    tagAlong: row.tag_along,
+    evEbit: row.ev_ebit,
+    roic: row.roic,
+    netMargin: row.net_margin,
+    assetTurnover: row.asset_turnover,
+    roe: row.roe,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -68,8 +86,9 @@ export async function addStock(req, res, next) {
         regular_market_price, regular_market_change, regular_market_change_percent,
         market_cap, logo_url, market_time,
         fifty_two_week_low, fifty_two_week_high, regular_market_volume,
-        price_earnings, dividend_yield, earnings_per_share, book_value, earnings_growth
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        price_earnings, dividend_yield, earnings_per_share, book_value, earnings_growth,
+        sector, tag_along, ev_ebit, roic, net_margin, asset_turnover, roe
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING *`,
       [
         ticker,
@@ -90,6 +109,13 @@ export async function addStock(req, res, next) {
         quote.earningsPerShare,
         quote.bookValue,
         quote.earningsGrowth,
+        quote.sector,
+        quote.tagAlong,
+        quote.evEbit,
+        quote.roic,
+        quote.netMargin,
+        quote.assetTurnover,
+        quote.roe,
       ]
     );
 
@@ -145,6 +171,13 @@ export async function refreshStock(req, res, next) {
         earnings_per_share = $16,
         book_value = $17,
         earnings_growth = $18,
+        sector = $19,
+        tag_along = $20,
+        ev_ebit = $21,
+        roic = $22,
+        net_margin = $23,
+        asset_turnover = $24,
+        roe = $25,
         updated_at = now()
       WHERE ticker = $1
       RETURNING *`,
@@ -167,6 +200,13 @@ export async function refreshStock(req, res, next) {
         quote.earningsPerShare,
         quote.bookValue,
         quote.earningsGrowth,
+        quote.sector,
+        quote.tagAlong,
+        quote.evEbit,
+        quote.roic,
+        quote.netMargin,
+        quote.assetTurnover,
+        quote.roe,
       ]
     );
 

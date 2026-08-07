@@ -22,6 +22,11 @@ const EMPTY_RESULT = {
   bookValue: null,
   dividendYield: null,
   earningsGrowth: null,
+  evEbit: null,
+  roic: null,
+  netMargin: null,
+  assetTurnover: null,
+  roe: null,
 };
 
 // Busca indicadores fundamentalistas no fundamentus.com.br (fonte não-oficial, sem API).
@@ -37,7 +42,10 @@ export async function fetchFundamentals(ticker) {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
-    html = await response.text();
+    // A página é servida em ISO-8859-1; response.text() decodifica como UTF-8 por padrão
+    // e corrompe rótulos acentuados (ex: "Marg. Líquida"), por isso decodificamos manualmente.
+    const buffer = await response.arrayBuffer();
+    html = new TextDecoder("iso-8859-1").decode(buffer);
   } catch (err) {
     return EMPTY_RESULT;
   }
@@ -55,5 +63,10 @@ export async function fetchFundamentals(ticker) {
     bookValue: parseBrNumber(values["VPA"]),
     dividendYield: parseBrPercent(values["Div. Yield"]),
     earningsGrowth: parseBrPercent(values["Cres. Rec (5a)"]),
+    evEbit: parseBrNumber(values["EV / EBIT"]),
+    roic: parseBrPercent(values["ROIC"]),
+    netMargin: parseBrPercent(values["Marg. Líquida"]),
+    assetTurnover: parseBrNumber(values["Giro Ativos"]),
+    roe: parseBrPercent(values["ROE"]),
   };
 }

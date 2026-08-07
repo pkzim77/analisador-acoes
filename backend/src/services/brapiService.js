@@ -31,12 +31,11 @@ function normalizeQuote(result) {
     regularMarketVolume: result.regularMarketVolume ?? null,
     priceEarnings: result.priceEarnings ?? null,
     earningsPerShare: result.earningsPerShare ?? null,
+    sector: result.summaryProfile?.sector ?? null,
   };
 }
 
-export async function fetchQuote(ticker) {
-  const url = `${BRAPI_BASE_URL}/${encodeURIComponent(ticker)}`;
-
+async function requestBrapi(url) {
   let response;
   try {
     response = await fetch(url, {
@@ -48,15 +47,29 @@ export async function fetchQuote(ticker) {
     throw new UpstreamError("Falha ao conectar com a brapi.dev");
   }
 
-  if (!response.ok && response.status !== 404) {
-    throw new UpstreamError(`brapi.dev respondeu com status ${response.status}`);
-  }
-
   let body;
   try {
     body = await response.json();
   } catch (err) {
     throw new UpstreamError("Resposta inválida da brapi.dev");
+  }
+
+  return { response, body };
+}
+
+export async function fetchQuote(ticker) {
+  const baseUrl = `${BRAPI_BASE_URL}/${encodeURIComponent(ticker)}`;
+
+  let { response, body } = await requestBrapi(`${baseUrl}?modules=summaryProfile`);
+
+  // summaryProfile (usado só para o setor) costuma continuar liberado mesmo quando outros
+  // módulos premium esgotam a cota, mas se isso mudar, cai pra cotação básica sem quebrar.
+  if (body?.code === "MODULES_NOT_AVAILABLE") {
+    ({ response, body } = await requestBrapi(baseUrl));
+  }
+
+  if (!response.ok && response.status !== 404) {
+    throw new UpstreamError(body?.message || `brapi.dev respondeu com status ${response.status}`);
   }
 
   const result = body?.results?.[0];
