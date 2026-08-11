@@ -28,3 +28,15 @@ ALTER TABLE stocks ADD COLUMN IF NOT EXISTS roic NUMERIC(9,6);
 ALTER TABLE stocks ADD COLUMN IF NOT EXISTS net_margin NUMERIC(9,6);
 ALTER TABLE stocks ADD COLUMN IF NOT EXISTS asset_turnover NUMERIC(9,4);
 ALTER TABLE stocks ADD COLUMN IF NOT EXISTS roe NUMERIC(9,6);
+
+-- Projeção de Fluxo de Caixa Descontado (DCF): premissas definidas manualmente pelo usuário
+-- por ação, e o valor justo resultante. Não é buscado de nenhuma API — é um dado configurado
+-- na ferramenta de projeção da aplicação.
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_payout NUMERIC(9,6);
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_roe NUMERIC(9,6);
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_discount_rate NUMERIC(9,6);
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_years SMALLINT;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_fair_value NUMERIC(18,4);
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_updated_at TIMESTAMPTZ;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_terminal_growth_rate NUMERIC(9,6);
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS dcf_overrides JSONB;

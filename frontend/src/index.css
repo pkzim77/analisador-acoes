@@ -224,6 +224,10 @@ h1 {
 /* Barra de ferramentas acima da tabela */
 .table-toolbar {
   margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
 }
 
 .quick-filter {
@@ -237,6 +241,22 @@ h1 {
 
 .quick-filter input {
   cursor: pointer;
+}
+
+.refresh-all-button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--viz-seq-fill);
+  border-radius: 4px;
+  background: white;
+  color: var(--viz-seq-fill);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.refresh-all-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Seções de tabelas detalhadas (Fórmula Mágica, DuPont, ...) abaixo da tabela principal */
@@ -280,6 +300,10 @@ h1 {
   background: var(--viz-good-bg);
 }
 
+.detail-table.no-highlight tbody tr:first-child {
+  background: transparent;
+}
+
 .detail-table-emphasis {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -289,4 +313,91 @@ h1 {
   margin-top: 0.75rem;
   color: var(--viz-muted);
   font-size: 0.85rem;
+}
+
+/* Ferramenta de projeção DCF */
+.dcf-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: end;
+}
+
+.dcf-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--viz-secondary);
+}
+
+.dcf-form input,
+.dcf-form select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  width: 130px;
+}
+
+.dcf-growth-note {
+  font-size: 0.85rem;
+  color: var(--viz-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.dcf-result {
+  display: flex;
+  gap: 2rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dcf-result-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--viz-muted);
+}
+
+.dcf-result-value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dcf-saved-note {
+  margin-left: 0.75rem;
+  color: var(--viz-good);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.dcf-eps-input {
+  width: 90px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dcf-eps-input.overridden {
+  border-color: var(--viz-seq-fill);
+  background: var(--viz-seq-track);
+  font-weight: 600;
+}
+
+.dcf-clear-overrides {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--viz-seq-fill);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
 }

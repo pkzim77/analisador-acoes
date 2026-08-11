@@ -41,3 +41,13 @@ export async function fetchHistory(ticker) {
   const body = await handleResponse(response);
   return body.history;
 }
+
+export async function saveDcfProjection(ticker, { payout, roe, discountRate, years, terminalGrowthRate, fairValue, overrides }) {
+  const response = await fetch(`${BASE_URL}/${ticker}/dcf`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ payout, roe, discountRate, years, terminalGrowthRate, fairValue, overrides }),
+  });
+  const body = await handleResponse(response);
+  return body.stock;
+}

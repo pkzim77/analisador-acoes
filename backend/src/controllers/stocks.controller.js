@@ -56,6 +56,14 @@ function rowToStock(row) {
     netMargin: row.net_margin,
     assetTurnover: row.asset_turnover,
     roe: row.roe,
+    dcfPayout: row.dcf_payout,
+    dcfRoe: row.dcf_roe,
+    dcfDiscountRate: row.dcf_discount_rate,
+    dcfYears: row.dcf_years,
+    dcfFairValue: row.dcf_fair_value,
+    dcfTerminalGrowthRate: row.dcf_terminal_growth_rate,
+    dcfOverrides: row.dcf_overrides,
+    dcfUpdatedAt: row.dcf_updated_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -221,6 +229,63 @@ export async function getStockHistory(req, res, next) {
     const ticker = req.params.ticker.toUpperCase();
     const history = await fetchHistory(ticker);
     res.json({ history });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function saveDcfProjection(req, res, next) {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const { payout, roe, discountRate, years, terminalGrowthRate, fairValue, overrides } = req.body ?? {};
+
+    const numbers = { payout, roe, discountRate, terminalGrowthRate, fairValue };
+    for (const [key, value] of Object.entries(numbers)) {
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        return res.status(400).json({ error: `Campo '${key}' inválido` });
+      }
+    }
+    if (!Number.isInteger(years) || years < 1 || years > 30) {
+      return res.status(400).json({ error: "Anos de projeção deve ser um inteiro entre 1 e 30" });
+    }
+    if (discountRate <= 0) {
+      return res.status(400).json({ error: "Taxa de desconto deve ser maior que zero" });
+    }
+    if (discountRate <= terminalGrowthRate) {
+      return res.status(400).json({ error: "Taxa de desconto deve ser maior que a taxa de crescimento na perpetuidade" });
+    }
+    if (overrides != null) {
+      if (typeof overrides !== "object" || Array.isArray(overrides)) {
+        return res.status(400).json({ error: "Campo 'overrides' inválido" });
+      }
+      for (const [year, value] of Object.entries(overrides)) {
+        if (!Number.isInteger(Number(year)) || typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+          return res.status(400).json({ error: `Override do ano '${year}' inválido` });
+        }
+      }
+    }
+
+    const existing = await pool.query("SELECT ticker FROM stocks WHERE ticker = $1", [ticker]);
+    if (existing.rowCount === 0) {
+      return res.status(404).json({ error: "Ticker não rastreado" });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE stocks SET
+        dcf_payout = $2,
+        dcf_roe = $3,
+        dcf_discount_rate = $4,
+        dcf_years = $5,
+        dcf_fair_value = $6,
+        dcf_terminal_growth_rate = $7,
+        dcf_overrides = $8,
+        dcf_updated_at = now()
+      WHERE ticker = $1
+      RETURNING *`,
+      [ticker, payout, roe, discountRate, years, fairValue, terminalGrowthRate, JSON.stringify(overrides ?? {})]
+    );
+
+    res.json({ stock: rowToStock(rows[0]) });
   } catch (err) {
     next(err);
   }

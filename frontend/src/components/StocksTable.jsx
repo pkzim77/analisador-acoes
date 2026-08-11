@@ -4,7 +4,7 @@ import { AgGridReact } from "ag-grid-react";
 import { computeValuation } from "../valuation.js";
 import { calcRSI } from "../technicals.js";
 import { rankMagicFormula } from "../magicFormula.js";
-import { fetchHistory } from "../api/stocksApi.js";
+import { fetchHistory, refreshStock } from "../api/stocksApi.js";
 import {
   formatPrice,
   formatPercent,
@@ -39,7 +39,12 @@ function buildRow(stock, history, magicFormula) {
     bookValue: numOrNull(stock.bookValue),
     earningsGrowth: numOrNull(stock.earningsGrowth),
     tagAlong: numOrNull(stock.tagAlong),
+    dcfFairValue: numOrNull(stock.dcfFairValue),
   };
+  const dcfUpside =
+    normalized.dcfFairValue != null && normalized.regularMarketPrice
+      ? ((normalized.dcfFairValue - normalized.regularMarketPrice) / normalized.regularMarketPrice) * 100
+      : null;
   return {
     ...normalized,
     ...computeValuation(normalized),
@@ -47,6 +52,7 @@ function buildRow(stock, history, magicFormula) {
     rsi: history ? calcRSI(history) : null,
     magicFormulaPosition: magicFormula?.position ?? null,
     magicFormulaTotal: magicFormula?.total ?? null,
+    dcfUpside,
   };
 }
 
@@ -59,10 +65,35 @@ const defaultColDef = {
 const PL_MAX = 30;
 const DIVIDEND_YIELD_MAX = 0.15;
 const MARGIN_CAP = 100;
+const REFRESH_ALL_CONCURRENCY = 3;
 
 export default function StocksTable({ stocks, onRemoved, onRefreshed }) {
   const [historyByTicker, setHistoryByTicker] = useState({});
   const [onlyGoodBuys, setOnlyGoodBuys] = useState(false);
+  const [refreshAllState, setRefreshAllState] = useState(null);
+
+  async function handleRefreshAll() {
+    const tickers = stocks.map((s) => s.ticker);
+    const queue = [...tickers];
+    const failed = [];
+    setRefreshAllState({ done: 0, total: tickers.length });
+
+    async function worker() {
+      while (queue.length > 0) {
+        const ticker = queue.shift();
+        try {
+          const updated = await refreshStock(ticker);
+          onRefreshed(updated);
+        } catch (err) {
+          failed.push(ticker);
+        }
+        setRefreshAllState((prev) => ({ ...prev, done: prev.done + 1 }));
+      }
+    }
+
+    await Promise.all(Array.from({ length: REFRESH_ALL_CONCURRENCY }, worker));
+    setRefreshAllState(failed.length > 0 ? { done: tickers.length, total: tickers.length, failed } : null);
+  }
 
   useEffect(() => {
     const missing = stocks.map((s) => s.ticker).filter((t) => !(t in historyByTicker));
@@ -223,6 +254,15 @@ export default function StocksTable({ stocks, onRemoved, onRefreshed }) {
         cellRenderer: (p) => <DivergingMeter value={p.value} cap={MARGIN_CAP} label={formatMargin(p.value)} />,
         width: 135,
       },
+      {
+        field: "dcfUpside",
+        headerName: "Upside DCF",
+        headerTooltip: "Valor justo por ação calculado na ferramenta de Projeção de Fluxo de Caixa (DCF), abaixo. '—' até você projetar essa ação.",
+        cellRenderer: (p) => (
+          <DivergingMeter value={p.value} cap={MARGIN_CAP} label={formatCeiling(p.data.dcfFairValue, p.value, p.data.currency)} />
+        ),
+        width: 175,
+      },
       { field: "updatedAt", headerName: "Atualizado em", valueFormatter: (p) => formatDateTime(p.value), width: 160 },
       {
         headerName: "Ações",
@@ -246,6 +286,19 @@ export default function StocksTable({ stocks, onRemoved, onRefreshed }) {
           <input type="checkbox" checked={onlyGoodBuys} onChange={(e) => setOnlyGoodBuys(e.target.checked)} />
           Mostrar só boas compras (preço abaixo do preço Graham)
         </label>
+        <button
+          type="button"
+          className="refresh-all-button"
+          onClick={handleRefreshAll}
+          disabled={refreshAllState != null && !refreshAllState.failed}
+        >
+          {refreshAllState != null && !refreshAllState.failed
+            ? `Atualizando ${refreshAllState.done}/${refreshAllState.total}...`
+            : "Atualizar todas"}
+        </button>
+        {refreshAllState?.failed?.length > 0 && (
+          <span className="error-message">Falha ao atualizar: {refreshAllState.failed.join(", ")}</span>
+        )}
       </div>
       <div className="table-scroll">
         <AgGridReact

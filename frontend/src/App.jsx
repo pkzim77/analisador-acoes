@@ -4,6 +4,7 @@ import AddStockForm from "./components/AddStockForm.jsx";
 import StocksTable from "./components/StocksTable.jsx";
 import MagicFormulaTable from "./components/MagicFormulaTable.jsx";
 import DuPontTable from "./components/DuPontTable.jsx";
+import DcfProjectionTool from "./components/DcfProjectionTool.jsx";
 
 export default function App() {
   const [stocks, setStocks] = useState([]);
@@ -39,6 +40,7 @@ export default function App() {
       {!loading && !error && (
         <>
           <StocksTable stocks={stocks} onRemoved={handleRemoved} onRefreshed={handleRefreshed} />
+          <DcfProjectionTool stocks={stocks} onSaved={handleRefreshed} />
           <MagicFormulaTable stocks={stocks} />
           <DuPontTable stocks={stocks} />
         </>
