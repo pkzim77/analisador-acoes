@@ -1,18 +1,24 @@
-// Modelo de Desconto de Dividendos (DDM) em 2 estágios:
+// Modelo em 2 estágios, com dois modos:
+// - DDM (Desconto de Dividendos): desconta apenas a parcela distribuída (LPA × Payout).
+// - DCF (Fluxo de Caixa Descontado): desconta o LPA inteiro (proxy do caixa total gerado pela
+//   firma por ação), sem aplicar o Payout como trava na distribuição — o Payout ainda entra no
+//   cálculo da taxa de crescimento sustentável (retenção financia o crescimento), mas não limita
+//   quanto do caixa é "distribuído" pra fins de valuation.
+// Em ambos os modos:
 // 1) projeta o LPA ano a ano — por padrão crescendo à taxa de crescimento sustentável
 //    (ROE × (1 - Payout)), mas qualquer ano pode ser sobrescrito manualmente (`overrides`),
 //    e os anos seguintes não sobrescritos continuam crescendo a partir do valor sobrescrito;
 // 2) soma um valor terminal (perpetuidade de Gordon) usando uma taxa de crescimento própria
 //    pra perpetuidade — deliberadamente separada da taxa de curto prazo, porque estender uma
 //    taxa de crescimento de curto prazo pra sempre infla o valor terminal de forma irrealista.
-// Valor Justo por Ação = soma dos dividendos descontados + valor terminal descontado.
+// Valor Justo por Ação = soma dos fluxos descontados + valor terminal descontado.
 
 export function calcSustainableGrowth(roe, payout) {
   if (roe == null || payout == null) return null;
   return Number(roe) * (1 - Number(payout));
 }
 
-export function projectDcf({ eps, payout, roe, discountRate, years, terminalGrowthRate, overrides = {} }) {
+export function projectDcf({ eps, payout, roe, discountRate, years, terminalGrowthRate, overrides = {}, model = "ddm" }) {
   const epsNum = Number(eps);
   const payoutNum = Number(payout);
   const roeNum = Number(roe);
@@ -52,21 +58,21 @@ export function projectDcf({ eps, payout, roe, discountRate, years, terminalGrow
     const isOverridden = overrideValue != null && Number.isFinite(Number(overrideValue)) && Number(overrideValue) > 0;
     const epsYear = isOverridden ? Number(overrideValue) : previousEps * (1 + growth);
     const yearGrowthPercent = (epsYear - previousEps) / previousEps;
-    const dividend = epsYear * payoutNum;
+    const cashFlow = model === "dcf" ? epsYear : epsYear * payoutNum;
     const discountFactor = Math.pow(1 + discountRateNum, year);
-    const presentValue = dividend / discountFactor;
+    const presentValue = cashFlow / discountFactor;
     sumPresentValue += presentValue;
-    rows.push({ year, eps: epsYear, growthPercent: yearGrowthPercent, dividend, presentValue, overridden: isOverridden });
+    rows.push({ year, eps: epsYear, growthPercent: yearGrowthPercent, cashFlow, presentValue, overridden: isOverridden });
     previousEps = epsYear;
   }
 
-  const lastDividend = rows[rows.length - 1].dividend;
-  const terminalValue = (lastDividend * (1 + terminalGrowthNum)) / (discountRateNum - terminalGrowthNum);
+  const lastCashFlow = rows[rows.length - 1].cashFlow;
+  const terminalValue = (lastCashFlow * (1 + terminalGrowthNum)) / (discountRateNum - terminalGrowthNum);
   const terminalValuePresent = terminalValue / Math.pow(1 + discountRateNum, yearsNum);
 
   const fairValue = sumPresentValue + terminalValuePresent;
 
-  return { rows, growth, terminalGrowthRate: terminalGrowthNum, terminalValue, terminalValuePresent, fairValue };
+  return { rows, growth, terminalGrowthRate: terminalGrowthNum, terminalValue, terminalValuePresent, fairValue, model };
 }
 
 // Estimativa inicial de Payout (dividendos pagos ÷ lucro) a partir de dados que já temos,

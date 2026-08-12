@@ -28,6 +28,7 @@ function overridesFromStock(stock) {
 
 export default function DcfProjectionTool({ stocks, onSaved }) {
   const [selectedTicker, setSelectedTicker] = useState(stocks[0]?.ticker ?? "");
+  const [model, setModel] = useState("ddm");
   const [payoutInput, setPayoutInput] = useState("");
   const [roeInput, setRoeInput] = useState("");
   const [discountRateInput, setDiscountRateInput] = useState(DEFAULT_DISCOUNT_RATE_PERCENT);
@@ -73,7 +74,7 @@ export default function DcfProjectionTool({ stocks, onSaved }) {
 
   const projection =
     stock && payout != null && roe != null && discountRate != null && terminalGrowthRate != null && yearsInput !== ""
-      ? projectDcf({ eps: stock.earningsPerShare, payout, roe, discountRate, years, terminalGrowthRate, overrides: parsedOverrides })
+      ? projectDcf({ eps: stock.earningsPerShare, payout, roe, discountRate, years, terminalGrowthRate, overrides: parsedOverrides, model })
       : { error: "Preencha todos os campos." };
 
   const currentPrice = stock?.regularMarketPrice != null ? Number(stock.regularMarketPrice) : null;
@@ -118,17 +119,34 @@ export default function DcfProjectionTool({ stocks, onSaved }) {
     <section className="detail-section">
       <h2>Projeção de Fluxo de Caixa (DCF)</h2>
       <p className="detail-section-intro">
-        Modelo de desconto de dividendos em 2 estágios: por padrão, o LPA cresce à{" "}
-        <strong>taxa de crescimento sustentável</strong> (ROE × (1 − Payout)) a cada ano — mas você
-        pode clicar em qualquer célula de "LPA projetado" na tabela e sobrescrever o valor daquele
-        ano manualmente; os anos seguintes não editados continuam crescendo a partir do valor que
-        você digitou. Depois do último ano projetado, soma-se um <strong>valor terminal</strong>{" "}
-        (perpetuidade de Gordon) usando uma taxa de crescimento própria — deliberadamente separada
-        da taxa de curto prazo, porque assumir a mesma taxa de crescimento pra sempre infla o valor
-        terminal de forma irrealista.
+        Modelo em 2 estágios: por padrão, o LPA cresce à <strong>taxa de crescimento sustentável</strong>{" "}
+        (ROE × (1 − Payout)) a cada ano — mas você pode clicar em qualquer célula de "LPA projetado"
+        na tabela e sobrescrever o valor daquele ano manualmente; os anos seguintes não editados
+        continuam crescendo a partir do valor que você digitou. Depois do último ano projetado,
+        soma-se um <strong>valor terminal</strong> (perpetuidade de Gordon) usando uma taxa de
+        crescimento própria — deliberadamente separada da taxa de curto prazo, porque assumir a
+        mesma taxa de crescimento pra sempre infla o valor terminal de forma irrealista.{" "}
+        {model === "dcf" ? (
+          <>
+            No modo <strong>DCF</strong>, o fluxo descontado é o LPA inteiro (proxy do caixa total
+            gerado pela firma por ação) — o Payout entra só no cálculo da taxa de crescimento
+            (retenção financia o crescimento), sem travar a distribuição.
+          </>
+        ) : (
+          <>
+            No modo <strong>DDM</strong>, o fluxo descontado é só a parcela distribuída (LPA × Payout).
+          </>
+        )}
       </p>
 
       <div className="dcf-form">
+        <label>
+          Modelo
+          <select value={model} onChange={(e) => setModel(e.target.value)}>
+            <option value="ddm">Dividendos (DDM)</option>
+            <option value="dcf">Fluxo de Caixa (DCF)</option>
+          </select>
+        </label>
         <label>
           Ação
           <select value={selectedTicker} onChange={(e) => setSelectedTicker(e.target.value)}>
@@ -140,7 +158,7 @@ export default function DcfProjectionTool({ stocks, onSaved }) {
           </select>
         </label>
         <label>
-          Payout (%)
+          {model === "dcf" ? "Payout (%) — só p/ crescimento" : "Payout (%)"}
           <input type="number" step="0.1" value={payoutInput} onChange={(e) => setPayoutInput(e.target.value)} />
         </label>
         <label>
@@ -192,7 +210,7 @@ export default function DcfProjectionTool({ stocks, onSaved }) {
                   <th>Ano</th>
                   <th>LPA projetado (edite se quiser)</th>
                   <th>Crescimento</th>
-                  <th>Dividendo/ação</th>
+                  <th>{model === "dcf" ? "Fluxo de Caixa/ação" : "Dividendo/ação"}</th>
                   <th>Valor Presente</th>
                 </tr>
               </thead>
@@ -210,7 +228,7 @@ export default function DcfProjectionTool({ stocks, onSaved }) {
                       />
                     </td>
                     <td className={r.growthPercent >= 0 ? "positive" : "negative"}>{formatPercent(r.growthPercent * 100)}</td>
-                    <td>{formatPrice(r.dividend, stock.currency)}</td>
+                    <td>{formatPrice(r.cashFlow, stock.currency)}</td>
                     <td>{formatPrice(r.presentValue, stock.currency)}</td>
                   </tr>
                 ))}
